@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Button, StyleSheet, Alert, Platform } from 'react-native'
+import { View, Button, StyleSheet, Alert, Platform, Text } from 'react-native'
 import { Picker } from '@react-native-picker/picker'
 import { Colors } from '../constants/Styles'
 
@@ -29,21 +29,22 @@ const ControlPanel = ({
   return (
     <View style={styles.container}>
       <View style={styles.controlRow}>
-        <View style={styles.depthSelector}>
-          <Picker
-            selectedValue={depth}
-            onValueChange={(itemValue) => setDepth(Number(itemValue))}
-            enabled={!isEvaluating}
-            style={styles.picker}
-          >
-            {depthOptions.map((option) => (
-              <Picker.Item
-                key={option}
-                label={`Depth: ${option}`}
-                value={option}
-              />
-            ))}
-          </Picker>
+        <View style={styles.depthContainer}>
+          <View style={styles.depthLabel}>
+            <Text style={styles.labelText}>Depth:</Text>
+          </View>
+          <View style={styles.depthSelector}>
+            <Picker
+              selectedValue={depth}
+              onValueChange={(itemValue) => setDepth(Number(itemValue))}
+              enabled={!isEvaluating}
+              style={styles.picker}
+            >
+              {depthOptions.map((option) => (
+                <Picker.Item key={option} label={`${option}`} value={option} />
+              ))}
+            </Picker>
+          </View>
         </View>
 
         <View style={styles.buttonContainer}>
@@ -91,9 +92,20 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  depthContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 8,
+  },
+  depthLabel: {
+    marginRight: 8,
+  },
+  labelText: {
+    fontWeight: '500',
+  },
   depthSelector: {
     flex: 1,
-    marginRight: 8,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: 4,
@@ -102,9 +114,12 @@ const styles = StyleSheet.create({
   picker: {
     height: 40,
     width: '100%',
+    paddingLeft: 8,
   },
   buttonContainer: {
     marginHorizontal: 4,
+    borderRadius: 8,
+    overflow: 'hidden',
   },
 })
 

@@ -1,115 +1,85 @@
-import React, { useEffect } from 'react'
-import { View, Text, StyleSheet, Platform } from 'react-native'
+import React, { useState, useEffect } from 'react'
+import {
+  View,
+  Text,
+  StyleSheet,
+  Platform,
+  TextInput,
+  TouchableOpacity,
+} from 'react-native'
 import createStyles from '@/constants/Styles'
 
-// Define the ActiveColorType
-type ActiveColorType = 'white' | 'black'
-
-// Map Unicode chess symbols to FEN characters
-const PIECE_TO_FEN: Record<string, string> = {
-  '♙': 'P',
-  '♘': 'N',
-  '♗': 'B',
-  '♖': 'R',
-  '♕': 'Q',
-  '♔': 'K',
-  '♟': 'p',
-  '♞': 'n',
-  '♝': 'b',
-  '♜': 'r',
-  '♛': 'q',
-  '♚': 'k',
-}
-
 interface FENProps {
-  pieces: string[][]
-  activeColor: ActiveColorType
-  castlingRights: {
-    whiteKingside: boolean
-    whiteQueenside: boolean
-    blackKingside: boolean
-    blackQueenside: boolean
-  }
-  onFENChange?: (fen: string) => void
+  fen: string
+  onFENChange: (newFEN: string) => void
 }
 
-const FEN: React.FC<FENProps> = ({
-  pieces,
-  activeColor,
-  castlingRights,
-  onFENChange,
-}) => {
+const FEN: React.FC<FENProps> = ({ fen, onFENChange }) => {
   const styles = createStyles()
+  const [inputFEN, setInputFEN] = useState(fen)
+  const [isEditing, setIsEditing] = useState(false)
 
-  // Generate FEN string from board state
-  const generateFEN = () => {
-    // 1. Piece placement
-    // In FEN, ranks are described from 8 to 1 (top to bottom)
-    const ranks = []
+  // Update local state when prop changes
+  useEffect(() => {
+    setInputFEN(fen)
+  }, [fen])
 
-    // Iterate through rows (0-7 in our array corresponds to ranks 8-1 in chess notation)
-    for (let row = 0; row < 8; row++) {
-      let rank = ''
-      let emptyCount = 0
-
-      for (let col = 0; col < 8; col++) {
-        const piece = pieces[row][col]
-        if (piece === '') {
-          emptyCount++
-        } else {
-          // If there were empty squares before this piece, add the count
-          if (emptyCount > 0) {
-            rank += emptyCount
-            emptyCount = 0
-          }
-          // Add the FEN character for this piece
-          rank += PIECE_TO_FEN[piece] || ''
-        }
-      }
-
-      // If there are empty squares at the end of the rank
-      if (emptyCount > 0) {
-        rank += emptyCount
-      }
-
-      ranks.push(rank)
-    }
-
-    // Join ranks with '/' separator
-    const piecePlacement = ranks.join('/')
-
-    // 2. Active color
-    const colorCode = activeColor === 'white' ? 'w' : 'b'
-
-    // 3. Castling availability
-    let castling = ''
-    if (castlingRights.whiteKingside) castling += 'K'
-    if (castlingRights.whiteQueenside) castling += 'Q'
-    if (castlingRights.blackKingside) castling += 'k'
-    if (castlingRights.blackQueenside) castling += 'q'
-    if (castling === '') castling = '-'
-
-    // 4, 5, 6. En passant, halfmove clock, fullmove number (using defaults)
-    const enPassant = '-'
-    const halfmoveClock = '0'
-    const fullmoveNumber = '1'
-
-    return `${piecePlacement} ${colorCode} ${castling} ${enPassant} ${halfmoveClock} ${fullmoveNumber}`
+  // Handle FEN input change
+  const handleFENChange = (text: string) => {
+    setInputFEN(text)
   }
 
-  // Notify parent component when FEN changes
-  useEffect(() => {
-    const currentFEN = generateFEN()
-    console.log('FEN generated:', currentFEN)
-    if (onFENChange) {
-      onFENChange(currentFEN)
+  // Handle save button press
+  const handleSave = () => {
+    // Basic validation - check if FEN has at least the board part and active color
+    const fenParts = inputFEN.split(' ')
+    if (fenParts.length >= 2) {
+      onFENChange(inputFEN)
     }
-  }, [pieces, activeColor, castlingRights, onFENChange])
+    setIsEditing(false)
+  }
+
+  // Handle cancel button press
+  const handleCancel = () => {
+    setInputFEN(fen) // Reset to current FEN
+    setIsEditing(false)
+  }
 
   return (
     <View style={localStyles.container}>
       <Text style={localStyles.label}>FEN:</Text>
-      <Text style={localStyles.fenText}>{generateFEN()}</Text>
+
+      {isEditing ? (
+        <View>
+          <TextInput
+            style={localStyles.input}
+            value={inputFEN}
+            onChangeText={handleFENChange}
+            autoCapitalize="none"
+            autoCorrect={false}
+            multiline={true}
+          />
+          <View style={localStyles.buttonContainer}>
+            <TouchableOpacity
+              style={[localStyles.button, localStyles.saveButton]}
+              onPress={handleSave}
+            >
+              <Text style={localStyles.buttonText}>Save</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[localStyles.button, localStyles.cancelButton]}
+              onPress={handleCancel}
+            >
+              <Text style={localStyles.buttonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        <TouchableOpacity onPress={() => setIsEditing(true)}>
+          <Text style={localStyles.fenText}>{fen}</Text>
+          <Text style={localStyles.editHint}>(Tap to edit)</Text>
+        </TouchableOpacity>
+      )}
     </View>
   )
 }
@@ -130,6 +100,44 @@ const localStyles = StyleSheet.create({
   fenText: {
     fontSize: 14,
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+  },
+  editHint: {
+    fontSize: 12,
+    color: '#888',
+    marginTop: 5,
+    fontStyle: 'italic',
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 4,
+    padding: 8,
+    fontSize: 14,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    backgroundColor: '#fff',
+    minHeight: 60,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  button: {
+    padding: 8,
+    borderRadius: 4,
+    flex: 1,
+    marginHorizontal: 5,
+    alignItems: 'center',
+  },
+  saveButton: {
+    backgroundColor: '#4CAF50',
+  },
+  cancelButton: {
+    backgroundColor: '#f44336',
+  },
+  buttonText: {
+    color: 'white',
+    fontWeight: 'bold',
   },
 })
 

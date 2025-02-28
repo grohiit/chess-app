@@ -32,111 +32,6 @@ interface EvaluationResultData {
   evalAfterMove: number
 }
 
-// Define types
-type ActiveColorType = 'white' | 'black'
-
-// Parse FEN string to extract board state, active color, and castling rights
-const parseFEN = (fen: string) => {
-  const fenParts = fen.split(' ')
-  const boardFEN = fenParts[0]
-  const activeColorCode = fenParts[1] || 'w'
-  const castlingCode = fenParts[2] || 'KQkq'
-
-  // Convert FEN board representation to pieces array
-  const pieces = fenToBoard(boardFEN)
-
-  // Parse active color
-  const activeColor: ActiveColorType =
-    activeColorCode === 'w' ? 'white' : 'black'
-
-  // Parse castling rights
-  const castlingRights = {
-    whiteKingside: castlingCode.includes('K'),
-    whiteQueenside: castlingCode.includes('Q'),
-    blackKingside: castlingCode.includes('k'),
-    blackQueenside: castlingCode.includes('q'),
-  }
-
-  return { pieces, activeColor, castlingRights }
-}
-
-// Convert FEN board representation to pieces array
-const fenToBoard = (boardFEN: string) => {
-  // Create an 8x8 array of empty strings
-  const pieces: string[][] = Array(8)
-    .fill(0)
-    .map(() => Array(8).fill(''))
-
-  const rows = boardFEN.split('/')
-
-  rows.forEach((row, rowIndex) => {
-    let colIndex = 0
-
-    for (let i = 0; i < row.length; i++) {
-      const char = row[i]
-
-      if (/\d/.test(char)) {
-        // If the character is a number, skip that many columns
-        colIndex += parseInt(char, 10)
-      } else {
-        // Otherwise, it's a piece
-        // Map FEN character to Unicode chess piece
-        let pieceSymbol = ''
-        if (/[PNBRQK]/.test(char)) {
-          // White piece
-          switch (char) {
-            case 'P':
-              pieceSymbol = '♙'
-              break
-            case 'N':
-              pieceSymbol = '♘'
-              break
-            case 'B':
-              pieceSymbol = '♗'
-              break
-            case 'R':
-              pieceSymbol = '♖'
-              break
-            case 'Q':
-              pieceSymbol = '♕'
-              break
-            case 'K':
-              pieceSymbol = '♔'
-              break
-          }
-        } else {
-          // Black piece
-          switch (char.toUpperCase()) {
-            case 'P':
-              pieceSymbol = '♟'
-              break
-            case 'N':
-              pieceSymbol = '♞'
-              break
-            case 'B':
-              pieceSymbol = '♝'
-              break
-            case 'R':
-              pieceSymbol = '♜'
-              break
-            case 'Q':
-              pieceSymbol = '♛'
-              break
-            case 'K':
-              pieceSymbol = '♚'
-              break
-          }
-        }
-
-        pieces[rowIndex][colIndex] = pieceSymbol
-        colIndex++
-      }
-    }
-  })
-
-  return pieces
-}
-
 export default function TabOneScreen() {
   const styles = createStyles()
   const [boardState, setBoardState] = useState<string>('')
@@ -145,23 +40,8 @@ export default function TabOneScreen() {
   const [evaluationResult, setEvaluationResult] =
     useState<EvaluationResultData | null>(null)
 
-  // State for current FEN and history
   const [currentFEN, setCurrentFEN] = useState<string>(DEFAULT_FEN)
   const [history, setHistory] = useState<string[]>([DEFAULT_FEN])
-
-  // Derived states from FEN
-  const [activeColor, setActiveColor] = useState<ActiveColorType>('white')
-  const [castlingRights, setCastlingRights] = useState({
-    whiteKingside: true,
-    whiteQueenside: true,
-    blackKingside: true,
-    blackQueenside: true,
-  })
-  const [boardPieces, setBoardPieces] = useState<string[][]>(
-    Array(8)
-      .fill(0)
-      .map(() => Array(8).fill(''))
-  )
 
   // Local styles for the component
   const localStyles = StyleSheet.create({
@@ -190,7 +70,7 @@ export default function TabOneScreen() {
         // Load saved depth
         const savedDepth = await AsyncStorage.getItem(DEPTH_STORAGE_KEY)
         if (savedDepth !== null) {
-          setDepth(parseInt(savedDepth, 10))
+          setDepth(parseInt(savedDepth, 12))
           console.log('Loaded depth:', savedDepth)
         }
 
@@ -207,10 +87,6 @@ export default function TabOneScreen() {
             setCurrentFEN(loadedFEN)
 
             // Parse the FEN to extract board state, active color, and castling rights
-            const { pieces, activeColor, castlingRights } = parseFEN(loadedFEN)
-            setBoardPieces(pieces)
-            setActiveColor(activeColor)
-            setCastlingRights(castlingRights)
 
             console.log('Loaded history:', parsedHistory)
             console.log('Loaded current FEN:', loadedFEN)
@@ -234,10 +110,6 @@ export default function TabOneScreen() {
       console.log('Setting default board state')
       setHistory([DEFAULT_FEN])
       setCurrentFEN(DEFAULT_FEN)
-      const { pieces, activeColor, castlingRights } = parseFEN(DEFAULT_FEN)
-      setBoardPieces(pieces)
-      setActiveColor(activeColor)
-      setCastlingRights(castlingRights)
     }
 
     loadSavedState()
@@ -275,152 +147,6 @@ export default function TabOneScreen() {
     }
   }, [history])
 
-  // Memoize the onPiecesChange callback to prevent unnecessary re-renders
-  const onPiecesChange = useCallback(
-    (newPieces: string[][]) => {
-      // Update the board pieces
-      setBoardPieces(newPieces)
-
-      // Generate a new FEN string from the board state
-      const newFEN = boardToFEN(newPieces, activeColor, castlingRights)
-
-      // Update the current FEN
-      setCurrentFEN(newFEN)
-
-      // Update the history with the new FEN
-      setHistory([newFEN])
-
-      console.log('Board updated, new FEN:', newFEN)
-    },
-    [activeColor, castlingRights]
-  )
-
-  // Convert board state to FEN string
-  const boardToFEN = (
-    board: string[][],
-    activeColor: ActiveColorType,
-    castlingRights: {
-      whiteKingside: boolean
-      whiteQueenside: boolean
-      blackKingside: boolean
-      blackQueenside: boolean
-    }
-  ) => {
-    // Convert board to FEN placement
-    let fenPlacement = ''
-
-    for (let row = 0; row < 8; row++) {
-      let emptyCount = 0
-
-      for (let col = 0; col < 8; col++) {
-        const piece = board[row][col]
-
-        if (piece === '') {
-          emptyCount++
-        } else {
-          // If there were empty squares before this piece, add the count
-          if (emptyCount > 0) {
-            fenPlacement += emptyCount
-            emptyCount = 0
-          }
-
-          // Map Unicode chess piece to FEN character
-          let fenChar = ''
-
-          switch (piece) {
-            case '♙':
-              fenChar = 'P'
-              break
-            case '♘':
-              fenChar = 'N'
-              break
-            case '♗':
-              fenChar = 'B'
-              break
-            case '♖':
-              fenChar = 'R'
-              break
-            case '♕':
-              fenChar = 'Q'
-              break
-            case '♔':
-              fenChar = 'K'
-              break
-            case '♟':
-              fenChar = 'p'
-              break
-            case '♞':
-              fenChar = 'n'
-              break
-            case '♝':
-              fenChar = 'b'
-              break
-            case '♜':
-              fenChar = 'r'
-              break
-            case '♛':
-              fenChar = 'q'
-              break
-            case '♚':
-              fenChar = 'k'
-              break
-          }
-
-          fenPlacement += fenChar
-        }
-      }
-
-      // If there are empty squares at the end of the row, add the count
-      if (emptyCount > 0) {
-        fenPlacement += emptyCount
-      }
-
-      // Add a slash between rows, except after the last row
-      if (row < 7) {
-        fenPlacement += '/'
-      }
-    }
-
-    // Add active color to FEN
-    const activeColorCode = activeColor === 'white' ? 'w' : 'b'
-
-    // Add castling rights to FEN
-    let castlingCode = ''
-    if (castlingRights.whiteKingside) castlingCode += 'K'
-    if (castlingRights.whiteQueenside) castlingCode += 'Q'
-    if (castlingRights.blackKingside) castlingCode += 'k'
-    if (castlingRights.blackQueenside) castlingCode += 'q'
-    if (castlingCode === '') castlingCode = '-'
-
-    // Add en passant target square (not implemented, so using '-')
-    const enPassantTarget = '-'
-
-    // Add halfmove clock and fullmove number (not implemented, so using defaults)
-    const halfmoveClock = '0'
-    const fullmoveNumber = '1'
-
-    // Combine all parts to form the complete FEN string
-    return `${fenPlacement} ${activeColorCode} ${castlingCode} ${enPassantTarget} ${halfmoveClock} ${fullmoveNumber}`
-  }
-
-  // Handle active color change
-  const handleActiveColorChange = useCallback((color: ActiveColorType) => {
-    setActiveColor(color)
-  }, [])
-
-  // Handle castling rights change
-  const handleCastlingRightsChange = useCallback(
-    (rights: {
-      whiteKingside: boolean
-      whiteQueenside: boolean
-      blackKingside: boolean
-      blackQueenside: boolean
-    }) => {
-      setCastlingRights(rights)
-    },
-    []
-  )
-
   // Handle FEN changes
   const handleFENChange = useCallback(
     (newFEN: string) => {
@@ -431,12 +157,6 @@ export default function TabOneScreen() {
         // Update the history with the new FEN
         setHistory([newFEN])
         console.log('History updated to:', [newFEN])
-
-        // Parse the FEN to extract board state, active color, and castling rights
-        const { pieces, activeColor, castlingRights } = parseFEN(newFEN)
-        setBoardPieces(pieces)
-        setActiveColor(activeColor)
-        setCastlingRights(castlingRights)
 
         // Save the new FEN to AsyncStorage
         const saveFEN = async () => {
@@ -470,10 +190,6 @@ export default function TabOneScreen() {
     // Set the default board state in the UI
     setHistory([DEFAULT_FEN])
     setCurrentFEN(DEFAULT_FEN)
-    const { pieces, activeColor, castlingRights } = parseFEN(DEFAULT_FEN)
-    setBoardPieces(pieces)
-    setActiveColor(activeColor)
-    setCastlingRights(castlingRights)
 
     // Save the default state to AsyncStorage
     try {
@@ -517,7 +233,7 @@ export default function TabOneScreen() {
 
   const handleUndo = () => {
     console.log('Undo pressed')
-    handleResetBoard()
+    // handleResetBoard()
 
     // Show a message to the user
     Alert.alert(
@@ -564,11 +280,6 @@ export default function TabOneScreen() {
         <View style={styles.debugRow}>
           <Text style={styles.debugLabel}>History Length:</Text>
           <Text style={styles.debugValue}>{history.length}</Text>
-        </View>
-
-        <View style={styles.debugRow}>
-          <Text style={styles.debugLabel}>Active Color:</Text>
-          <Text style={styles.debugValue}>{activeColor}</Text>
         </View>
 
         <View style={styles.debugButtons}>
@@ -639,31 +350,23 @@ export default function TabOneScreen() {
           <View style={localStyles.boardWrapper}>
             <Board
               onBoardChange={handleBoardStateChange}
-              activeColor={activeColor}
-              onPiecesChange={onPiecesChange}
-              initialPieces={boardPieces}
+              fen={currentFEN}
+              onFENChange={handleFENChange}
             />
           </View>
 
           {/* Board options */}
           <View style={localStyles.optionsWrapper}>
             <BoardOptions
-              activeColor={activeColor}
-              setActiveColor={handleActiveColorChange}
-              castlingRights={castlingRights}
-              setCastlingRights={handleCastlingRightsChange}
+              fen={currentFEN}
+              onFENChange={handleFENChange}
               isHorizontal={true}
             />
           </View>
         </View>
 
         {/* FEN component */}
-        <FEN
-          pieces={boardPieces}
-          activeColor={activeColor}
-          castlingRights={castlingRights}
-          onFENChange={handleFENChange}
-        />
+        <FEN fen={currentFEN} onFENChange={handleFENChange} />
 
         {/* Control panel */}
         <ControlPanel
@@ -699,75 +402,3 @@ export default function TabOneScreen() {
     </ScrollView>
   )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingBottom: 40, // Add padding at the bottom to ensure content isn't cut off
-    paddingHorizontal: 10, // Add horizontal padding
-  },
-  separator: {
-    height: 1,
-    backgroundColor: '#e0e0e0',
-    marginVertical: 10,
-    width: '100%',
-  },
-  title: {
-    fontSize: 24, // Increase font size for better visibility
-    fontWeight: 'bold',
-    marginTop: 20,
-    marginBottom: 15,
-    textAlign: 'center',
-  },
-  text: {
-    fontSize: 16,
-    marginVertical: 10,
-    textAlign: 'center',
-    paddingHorizontal: 15,
-  },
-  controlPanel: {
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  debugSection: {
-    padding: 15,
-    marginTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    color: '#333',
-  },
-  debugRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  debugLabel: {
-    fontWeight: 'bold',
-    marginRight: 10,
-  },
-  debugValue: {
-    flex: 1,
-  },
-  debugButtons: {
-    marginTop: 15,
-  },
-  helpSection: {
-    padding: 15,
-    marginTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  helpItem: {
-    marginBottom: 12,
-  },
-  helpText: {
-    fontSize: 16,
-    lineHeight: 22,
-  },
-})
