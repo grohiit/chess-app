@@ -128,7 +128,7 @@ const BoardOptions: React.FC<BoardOptionsProps> = ({
     >
       {/* Active Color */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Active Color</Text>
+        <Text style={styles.sectionTitle}>Next Move</Text>
         <View style={styles.radioGroup}>
           <TouchableOpacity
             style={[

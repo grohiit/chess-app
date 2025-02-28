@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import {
-  View,
-  TouchableOpacity,
-  Text,
-  StyleSheet,
-  Dimensions,
-} from 'react-native'
+import { View, StyleSheet, Dimensions } from 'react-native'
+import BoardSquare from './BoardSquare'
 
 interface BoardProps {
   fen: string
@@ -168,7 +163,7 @@ const Board: React.FC<BoardProps> = ({ fen, onFENChange, onBoardChange }) => {
   }
 
   // Calculate font size based on board size
-  const fontSize = maxBoardSize / 16
+  const fontSize = maxBoardSize / 8
 
   // Render the board
   return (
@@ -178,16 +173,13 @@ const Board: React.FC<BoardProps> = ({ fen, onFENChange, onBoardChange }) => {
           {row.map((piece, colIndex) => {
             const isBlackSquare = (rowIndex + colIndex) % 2 === 1
             return (
-              <TouchableOpacity
+              <BoardSquare
                 key={`square-${rowIndex}-${colIndex}`}
-                style={[
-                  styles.square,
-                  isBlackSquare ? styles.blackSquare : styles.whiteSquare,
-                ]}
+                piece={piece}
+                isBlackSquare={isBlackSquare}
+                fontSize={fontSize}
                 onPress={() => handleSquarePress(rowIndex, colIndex)}
-              >
-                <Text style={[styles.pieceText, { fontSize }]}>{piece}</Text>
-              </TouchableOpacity>
+              />
             )
           })}
         </View>
@@ -206,20 +198,6 @@ const styles = StyleSheet.create({
   row: {
     flex: 1,
     flexDirection: 'row',
-  },
-  square: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  whiteSquare: {
-    backgroundColor: '#f0d9b5',
-  },
-  blackSquare: {
-    backgroundColor: '#b58863',
-  },
-  pieceText: {
-    // fontSize is now dynamically calculated
   },
 })
 
