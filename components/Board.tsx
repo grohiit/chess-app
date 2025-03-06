@@ -135,6 +135,7 @@ const Board: React.FC<BoardProps> = ({ fen, onFENChange }) => {
 
   // Handle square press
   const handleSquarePress = (row: number, col: number) => {
+    console.log(`pressed ${row} ${col}`)
     const newPieces = [...pieces.map((r) => [...r])]
 
     // Cycle through pieces

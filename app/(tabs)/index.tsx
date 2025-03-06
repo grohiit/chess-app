@@ -70,7 +70,7 @@ export default function TabOneScreen() {
         // Load saved depth
         const savedDepth = await AsyncStorage.getItem(DEPTH_STORAGE_KEY)
         if (savedDepth !== null) {
-          setDepth(parseInt(savedDepth, 12))
+          setDepth(parseInt(savedDepth, 10))
           console.log('Loaded depth:', savedDepth)
         }
 
