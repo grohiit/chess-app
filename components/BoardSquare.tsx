@@ -1,5 +1,6 @@
 import React from 'react'
-import { TouchableOpacity, Text, StyleSheet } from 'react-native'
+import { TouchableOpacity, Text, StyleSheet, Platform } from 'react-native'
+import { ViewStyle } from 'react-native'
 
 interface BoardSquareProps {
   piece: string
@@ -19,6 +20,7 @@ const BoardSquare: React.FC<BoardSquareProps> = ({
       style={[
         styles.square,
         isBlackSquare ? styles.blackSquare : styles.whiteSquare,
+        Platform.OS === 'web' && ({ cursor: 'pointer' } as ViewStyle),
       ]}
       onPress={onPress}
     >

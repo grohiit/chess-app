@@ -177,12 +177,6 @@ export default function TabOneScreen() {
     [currentFEN]
   )
 
-  // Handle board state changes
-  const handleBoardStateChange = useCallback((newBoardState: string) => {
-    console.log('Board state changed:', newBoardState)
-    setBoardState(newBoardState)
-  }, [])
-
   // Reset board to default state
   const handleResetBoard = async () => {
     console.log('Resetting board to default state')
@@ -348,11 +342,7 @@ export default function TabOneScreen() {
         <View style={localStyles.boardAndOptionsContainer}>
           {/* Board component */}
           <View style={localStyles.boardWrapper}>
-            <Board
-              onBoardChange={handleBoardStateChange}
-              fen={currentFEN}
-              onFENChange={handleFENChange}
-            />
+            <Board fen={currentFEN} onFENChange={handleFENChange} />
           </View>
 
           {/* Board options */}

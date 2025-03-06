@@ -5,10 +5,9 @@ import BoardSquare from './BoardSquare'
 interface BoardProps {
   fen: string
   onFENChange: (newFEN: string) => void
-  onBoardChange: (newBoardState: string) => void
 }
 
-const Board: React.FC<BoardProps> = ({ fen, onFENChange, onBoardChange }) => {
+const Board: React.FC<BoardProps> = ({ fen, onFENChange }) => {
   const [pieces, setPieces] = useState<string[][]>(
     Array(8).fill(Array(8).fill(''))
   )
@@ -159,7 +158,6 @@ const Board: React.FC<BoardProps> = ({ fen, onFENChange, onBoardChange }) => {
     // Generate new FEN and update
     const newFEN = generateFEN(newPieces)
     onFENChange(newFEN)
-    onBoardChange(newFEN)
   }
 
   // Calculate font size based on board size
